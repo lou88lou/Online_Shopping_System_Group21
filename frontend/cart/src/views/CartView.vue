@@ -18,15 +18,19 @@
             :key="item.id"
             class="cart-item"
           >
-            <!-- Product Image -->
-            <div class="item-image">
+            <!-- ✅ 修改：商品图片可点击 -->
+            <div class="item-image" @click="goToProductDetail(item.id)">
               <img :src="item.image" :alt="item.name" />
+              <div class="image-overlay">
+                <span class="view-detail-text">View Details</span>
+              </div>
             </div>
 
-            <!-- Product Information -->
-            <div class="item-info">
+            <!-- ✅ 修改：商品信息区域可点击 -->
+            <div class="item-info" @click="goToProductDetail(item.id)">
               <h3 class="item-name">{{ item.name }}</h3>
               <p class="item-price">Unit Price: ¥{{ item.price.toFixed(2) }}</p>
+              <p class="view-detail-hint">Click to view details →</p>  <!-- ✅ 新增提示 -->
             </div>
 
             <!-- A9: Modify Quantity -->
@@ -110,6 +114,10 @@ import { useRouter } from 'vue-router'
 const cartStore = useCartStore()
 const router = useRouter()
 
+// ✅ 新增：跳转到商品详情页
+const goToProductDetail = (productId) => {
+  router.push(`/products/${productId}`)
+}
 // A9: 增加数量
 const increaseQuantity = (item) => {
   cartStore.updateQuantity(item.id, item.quantity + 1)

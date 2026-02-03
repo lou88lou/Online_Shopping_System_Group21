@@ -6,28 +6,45 @@ export const useCartStore = defineStore('cart', () => {
   // 状态
   const cartItems = ref([])
   const isLoading = ref(false)
-
+  // ✅ 修改：通过函数获取 authStore，避免循环依赖
+  const getAuthStore = () => {
+    const { useAuthStore } = require('./auth')
+    return useAuthStore()
+  }
   // 从 localStorage 加载
   const loadCart = () => {
     try {
-      const saved = localStorage.getItem('cart')
+      // ✅ 修改：只为已登录用户加载购物车
+      const authStore = useAuthStore()
+      if (!authStore.isLoggedIn) {
+        cartItems.value = []
+        return
+      }
+
+      // 为每个用户单独存储购物车
+      const userId = authStore.user.id
+      const saved = localStorage.getItem(`cart_${userId}`)
       if (saved) {
         cartItems.value = JSON.parse(saved)
       }
     } catch (e) {
-      console.error('failed to load cart:', e)
+      console.error('Failed to load cart:', e)
     }
   }
 
   // 保存到 localStorage
-  const saveCart = () => {
+   const saveCart = () => {
     try {
-      localStorage.setItem('cart', JSON.stringify(cartItems.value))
+      // ✅ 修改：只为已登录用户保存购物车
+      const authStore = useAuthStore()
+      if (!authStore.isLoggedIn) return
+
+      const userId = authStore.user.id
+      localStorage.setItem(`cart_${userId}`, JSON.stringify(cartItems.value))
     } catch (e) {
-      console.error('failed to save cart:', e)
+      console.error('Failed to save cart:', e)
     }
   }
-
   // 初始化加载
   loadCart()
 
@@ -47,6 +64,15 @@ export const useCartStore = defineStore('cart', () => {
 
   // A7: 添加商品到购物车（默认数量为1）
   const addToCart = (product, quantity = 1) => {
+    const authStore = getAuthStore()
+    
+    if (!authStore.isLoggedIn) {
+      return { 
+        success: false, 
+        message: 'Please login first to add items to cart',
+        requiresLogin: true
+      }
+    }
     const existingItem = cartItems.value.find(item => item.id === product.id)
 
     if (existingItem) {
@@ -98,7 +124,10 @@ export const useCartStore = defineStore('cart', () => {
     cartItems.value = []
     return { success: true, message: 'cart cleared successfully' }
   }
-
+  // ✅ 添加：用户登出时清空购物车
+  const clearCartOnLogout = () => {
+    cartItems.value = []
+  }
   return {
     cartItems,
     isLoading,
@@ -108,6 +137,8 @@ export const useCartStore = defineStore('cart', () => {
     addToCart,
     updateQuantity,
     removeFromCart,
-    clearCart
+    clearCart,
+    clearCartOnLogout,  // ✅ 新增
+    loadCart  // ✅ 新增：暴露 loadCart 方法
   }
 })

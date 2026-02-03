@@ -42,7 +42,8 @@ const router = createRouter({
     {
       path: '/cart',
       name: 'cart',
-      component: CartView
+      component: CartView,
+         meta: { requiresAuth: true }  // ✅ 添加：需要登录
     },
     {
       path: '/checkout',

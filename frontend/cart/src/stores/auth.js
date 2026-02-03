@@ -68,14 +68,23 @@ export const useAuthStore = defineStore('auth', () => {
       // 持久化到 localStorage
       localStorage.setItem('user', JSON.stringify(user.value))
 
-      return { success: true, message: 'login successful!' }
+      const { useCartStore } = await import('./cart')
+      const cartStore = useCartStore()
+      cartStore.loadCart()
+
+      return { success: true, message: 'Login successful!' }
     } catch (error) {
       return { success: false, message: error.message }
     }
   }
 
   // 登出
-  const logout = () => {
+  const logout = async () => {
+    // ✅ 添加：登出时清空购物车
+    const { useCartStore } = await import('./cart')
+    const cartStore = useCartStore()
+    cartStore.clearCartOnLogout()
+
     user.value = null
     isLoggedIn.value = false
     localStorage.removeItem('user')
