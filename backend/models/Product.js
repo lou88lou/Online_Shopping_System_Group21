@@ -1,7 +1,7 @@
 const db = require('../config/db');
 
 class Product {
-  // 获取所有商品（分页）
+  // 获取所有商品
   static async findAll(page = 1, limit = 10) {
     const offset = (page - 1) * limit;
     
