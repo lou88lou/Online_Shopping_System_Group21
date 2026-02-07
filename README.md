@@ -12,3 +12,20 @@ A8: 购物车列表	GET /api/cart	关联查询 + 计算总价
 A9: 修改数量	PUT /api/cart/:id	更新数量 + 验证	
 A10: 移除商品	DELETE /api/cart/:id	删除记录	
 A11: 创建订单	POST /api/orders	事务处理 + 清空购物车	
+
+
+
+
+如何使用：
+1.在后端开启终端输入以下指令
+cd d:\aaaagit\Online_Shopping_System_Group21\backend   
+node server.js
+
+2.在前端开启终端输入以下指令
+cd d:\aaaagit\Online_Shopping_System_Group21\frontend\cart
+npm install      
+npm run serve
+3.网站在以下两个网址运行
+  App running at:
+  - Local:   http://localhost:8080/ 
+  - Network: http://192.168.1.108:8080/
