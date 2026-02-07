@@ -88,6 +88,6 @@ INSERT INTO products (name, price, thumbnail_url, description) VALUES
 ('iPad Air', 599.99, 'https://via.placeholder.com/150/FFA500/000000?text=iPad', 'Powerful iPad with M1 chip'),
 ('Bose Portable Speaker', 199.99, 'https://via.placeholder.com/150/FFC0CB/000000?text=Speaker', 'Portable Bluetooth speaker with excellent sound quality');
 
--- Create test user (password: test123)
+-- 测试用户 (密码: test123)，使用 bcrypt 哈希
 INSERT INTO users (full_name, email, password, shipping_address) VALUES
-('Test User', 'test@example.com', '$2a$10$N9qo8uLOickgx2ZMRZoMyeLHQKzHZRbZcF/7hCJFY8vJjTt0X4q.G', '123 Test Address, Hong Kong');
+('Test User', 'test@example.com', '$2b$10$kOb6tGxvPuqX7WCAFmxnsuOuSWNML.ST1YENg5iXqrta/Mjw57xsm', '123 Test Address, Hong Kong');

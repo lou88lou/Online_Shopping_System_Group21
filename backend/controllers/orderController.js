@@ -17,17 +17,21 @@ const orderController = {
         });
       }
 
-      // Get user address
-      const user = await User.findById(userId);
-      if (!user || !user.shipping_address) {
-        return res.status(400).json({
-          success: false,
-          error: 'Shipping address not found'
-        });
+      // 优先使用请求体中的配送地址，否则使用用户资料中的地址
+      const addressFromBody = req.body.shipping_address && req.body.shipping_address.trim();
+      let shippingAddress = addressFromBody;
+      if (!shippingAddress) {
+        const user = await User.findById(userId);
+        if (!user || !user.shipping_address) {
+          return res.status(400).json({
+            success: false,
+            error: 'Shipping address not found'
+          });
+        }
+        shippingAddress = user.shipping_address;
       }
 
-      // Create order
-      const order = await Order.create(userId, user.shipping_address);
+      const order = await Order.create(userId, shippingAddress);
 
       res.status(201).json({
         success: true,

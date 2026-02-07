@@ -18,7 +18,7 @@
           </button>
         </div>
         <p class="result-count">
-          Found {{ productsStore.filteredProducts.length }} products
+          Found {{ productsStore.pagination.totalItems ?? productsStore.products.length }} products
         </p>
       </div>
 
@@ -54,26 +54,32 @@ import ProductCard from '../components/ProductCard.vue'
 import Pagination from '../components/Pagination.vue'
 
 const productsStore = useProductsStore()
-const searchQuery = ref('')
+const searchQuery = ref(productsStore.searchQuery || '')
 
-onMounted(() => {
-  // 页面加载时重置到第一页
+onMounted(async () => {
   productsStore.currentPage = 1
+  productsStore.searchQuery = searchQuery.value
+  await productsStore.fetchProducts()
 })
 
-// A4: 搜索功能
-const handleSearch = () => {
+// A4: 搜索功能（调用后端）
+const handleSearch = async () => {
   productsStore.searchProducts(searchQuery.value)
+  productsStore.currentPage = 1
+  await productsStore.fetchProducts()
 }
 
 // A5: 分页切换
-const handlePageChange = (page) => {
+const handlePageChange = async (page) => {
   productsStore.goToPage(page)
+  await productsStore.fetchProducts()
 }
 
-const clearSearch = () => {
+const clearSearch = async () => {
   searchQuery.value = ''
   productsStore.searchProducts('')
+  productsStore.currentPage = 1
+  await productsStore.fetchProducts()
 }
 </script>
 

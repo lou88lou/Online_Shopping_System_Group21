@@ -1,106 +1,107 @@
-// frontend/src/stores/orders.js
+// frontend/src/stores/orders.js — 对接后端 /api/orders
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useCartStore } from './cart'
+import api from '../api'
 import { useAuthStore } from './auth'
+import { useCartStore } from './cart'
+
+function normalizeOrder(o) {
+  if (!o) return null
+  return {
+    id: o.id,
+    orderId: o.id,
+    orderNumber: o.order_number ?? o.orderNumber,
+    totalAmount: parseFloat(o.total_amount ?? o.totalAmount ?? 0),
+    status: o.status,
+    createdAt: o.purchase_date ?? o.createdAt,
+    shippingAddress: o.shipping_address ?? o.shippingAddress,
+    items: o.items || []
+  }
+}
 
 export const useOrdersStore = defineStore('orders', () => {
   const orders = ref([])
   const isCheckoutLoading = ref(false)
 
-  // 从 localStorage 加载订单
-  const loadOrders = () => {
-    try {
-      const saved = localStorage.getItem('orders')
-      if (saved) {
-        orders.value = JSON.parse(saved)
-      }
-    } catch (e) {
-      console.error('failed to load orders:', e)
-    }
-  }
-
-  // 保存订单
-  const saveOrders = () => {
-    try {
-      localStorage.setItem('orders', JSON.stringify(orders.value))
-    } catch (e) {
-      console.error('failed to save orders:', e)
-    }
-  }
-
-  // 初始化
-  loadOrders()
-
-  // 获取用户订单
   const userOrders = computed(() => {
     const authStore = useAuthStore()
     if (!authStore.user) return []
-    return orders.value.filter(order => order.userId === authStore.user.id)
+    return orders.value.filter(order => order.userId === authStore.user.id || true)
   })
 
-  // A11: 结账 - 创建订单并清空购物车
+  const fetchOrders = async (page = 1, limit = 10) => {
+    try {
+      const { data } = await api.get(`/orders?page=${page}&limit=${limit}`)
+      if (data.success && data.data?.orders) {
+        orders.value = data.data.orders.map(normalizeOrder)
+        return { orders: orders.value, pagination: data.data.pagination }
+      }
+      orders.value = []
+      return { orders: [], pagination: null }
+    } catch (err) {
+      console.error('Fetch orders error:', err)
+      orders.value = []
+      return { orders: [], pagination: null }
+    }
+  }
+
   const checkout = async (shippingAddress) => {
     const cartStore = useCartStore()
     const authStore = useAuthStore()
-
-    // 检查登录状态
     if (!authStore.isLoggedIn) {
-      return { success: false, message: 'please login first' }
+      return { success: false, message: 'Please login first' }
     }
-
-    // 检查购物车
     if (cartStore.isEmpty) {
-      return { success: false, message: 'the cart is empty' }
+      return { success: false, message: 'The cart is empty' }
     }
 
     isCheckoutLoading.value = true
-
     try {
-      // 模拟API调用延迟
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // 创建订单
-      const newOrder = {
-        id: `PO${Date.now()}`,
-        userId: authStore.user.id,
-        customerName: authStore.user.fullName,
-        items: [...cartStore.cartItems],
-        subtotal: cartStore.subtotal,
-        shippingAddress: shippingAddress || authStore.user.shippingAddress,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+      const { data } = await api.post('/orders', shippingAddress ? { shipping_address: shippingAddress } : {})
+      if (!data.success) {
+        return { success: false, message: data.error || 'Failed to create order' }
       }
-
-      // 保存订单
-      orders.value.unshift(newOrder)
-      saveOrders()
-
-      // 清空购物车
-      cartStore.clearCart()
-
-      return { 
-        success: true, 
-        message: 'order created successfully!',
-        orderId: newOrder.id 
+      const orderData = data.data?.order
+      const orderId = orderData?.id ?? orderData?.orderNumber
+      const newOrder = normalizeOrder({
+        id: orderData?.id,
+        order_number: orderData?.orderNumber,
+        total_amount: orderData?.totalAmount,
+        status: orderData?.status ?? 'pending',
+        purchase_date: orderData?.createdAt
+      })
+      if (newOrder) orders.value.unshift(newOrder)
+      await cartStore.loadCart()
+      return {
+        success: true,
+        message: data.message || 'Order created successfully!',
+        orderId: orderId || newOrder?.orderNumber
       }
-    } catch (error) {
-      return { success: false, message: 'failed to create order, please try again' }
+    } catch (err) {
+      return { success: false, message: err.message || 'Failed to create order, please try again' }
     } finally {
       isCheckoutLoading.value = false
     }
   }
 
-  // 获取订单详情
-  const getOrderById = (orderId) => {
-    return orders.value.find(order => order.id === orderId)
+  const getOrderById = async (orderId) => {
+    try {
+      const { data } = await api.get(`/orders/${orderId}`)
+      if (data.success && data.data?.order) {
+        return normalizeOrder(data.data.order)
+      }
+      return null
+    } catch (err) {
+      console.error('Get order error:', err)
+      return null
+    }
   }
 
   return {
     orders,
     userOrders,
     isCheckoutLoading,
+    fetchOrders,
     checkout,
     getOrderById
   }

@@ -1,101 +1,113 @@
-// frontend/src/stores/auth.js（A1-A2）
+// frontend/src/stores/auth.js（A1-A2）— 对接后端 API
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
+import api, { getToken, setToken } from '../api'
+
+// 将后端 user 转为前端使用的格式（snake_case -> camelCase）
+function normalizeUser(backendUser) {
+  if (!backendUser) return null
+  return {
+    id: backendUser.id,
+    fullName: backendUser.full_name ?? backendUser.fullName,
+    email: backendUser.email,
+    shippingAddress: backendUser.shipping_address ?? backendUser.shippingAddress
+  }
+}
 
 export const useAuthStore = defineStore('auth', () => {
-  // 状态
   const user = ref(null)
   const isLoggedIn = ref(false)
 
-  // 从 localStorage 恢复登录状态
-  const initAuth = () => {
-    const savedUser = localStorage.getItem('user')
-    if (savedUser) {
-      user.value = JSON.parse(savedUser)
-      isLoggedIn.value = true
+  const initAuth = async () => {
+    const token = getToken()
+    if (!token) {
+      user.value = null
+      isLoggedIn.value = false
+      return
+    }
+    try {
+      const { data } = await api.get('/auth/me')
+      if (data.success && data.data?.user) {
+        user.value = normalizeUser(data.data.user)
+        isLoggedIn.value = true
+      } else {
+        setToken(null)
+        user.value = null
+        isLoggedIn.value = false
+      }
+    } catch {
+      setToken(null)
+      user.value = null
+      isLoggedIn.value = false
     }
   }
 
-  // A1: 注册新用户
+  // A1: 注册 — POST /api/auth/register
   const register = async (userData) => {
     try {
-      // 模拟注册（实际应调用后端API）
-      const newUser = {
-        id: Date.now(),
-        fullName: userData.fullName,
+      const { data } = await api.post('/auth/register', {
+        full_name: userData.fullName,
         email: userData.email,
-        shippingAddress: userData.shippingAddress,
-        createdAt: new Date().toISOString()
+        password: userData.password,
+        shipping_address: userData.shippingAddress
+      })
+      if (!data.success) {
+        return { success: false, message: data.error || 'Registration failed' }
       }
-
-      // 保存到 localStorage（模拟数据库）
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
-      
-      // 检查邮箱是否已存在
-      if (users.find(u => u.email === userData.email)) {
-        throw new Error('this email is already registered')
+      const token = data.data?.token
+      const backendUser = data.data?.user
+      if (token) setToken(token)
+      if (backendUser) {
+        user.value = normalizeUser(backendUser)
+        isLoggedIn.value = true
+        localStorage.setItem('user', JSON.stringify(user.value))
       }
-
-      users.push({ ...newUser, password: userData.password })
-      localStorage.setItem('users', JSON.stringify(users))
-
-      return { success: true, message: 'registration successful! please login' }
-    } catch (error) {
-      return { success: false, message: error.message }
+      return { success: true, message: data.message || 'Registration successful! Please login.' }
+    } catch (err) {
+      const msg = err.message || err.data?.error || 'Registration failed'
+      return { success: false, message: msg }
     }
   }
 
-  // A2: 用户登录
+  // A2: 登录 — POST /api/auth/login
   const login = async (email, password) => {
     try {
-      // 模拟登录验证
-      const users = JSON.parse(localStorage.getItem('users') || '[]')
-      const foundUser = users.find(u => u.email === email && u.password === password)
-
-      if (!foundUser) {
-        throw new Error('email or password is incorrect')
+      const { data } = await api.post('/auth/login', { email, password })
+      if (!data.success) {
+        return { success: false, message: data.error || 'Login failed' }
       }
-
-      // 保存用户信息（不包含密码）
-      user.value = {
-        id: foundUser.id,
-        fullName: foundUser.fullName,
-        email: foundUser.email,
-        shippingAddress: foundUser.shippingAddress
+      const token = data.data?.token
+      const backendUser = data.data?.user
+      if (token) setToken(token)
+      if (backendUser) {
+        user.value = normalizeUser(backendUser)
+        isLoggedIn.value = true
+        localStorage.setItem('user', JSON.stringify(user.value))
       }
-      isLoggedIn.value = true
-
-      // 持久化到 localStorage
-      localStorage.setItem('user', JSON.stringify(user.value))
-
       const { useCartStore } = await import('./cart')
       const cartStore = useCartStore()
-      cartStore.loadCart()
-
-      return { success: true, message: 'Login successful!' }
-    } catch (error) {
-      return { success: false, message: error.message }
+      await cartStore.loadCart()
+      return { success: true, message: data.message || 'Login successful!' }
+    } catch (err) {
+      const msg = err.message || err.data?.error || 'Email or password is incorrect'
+      return { success: false, message: msg }
     }
   }
 
-  // 登出
   const logout = async () => {
-    // ✅ 添加：登出时清空购物车
     const { useCartStore } = await import('./cart')
     const cartStore = useCartStore()
     cartStore.clearCartOnLogout()
-
+    setToken(null)
     user.value = null
     isLoggedIn.value = false
     localStorage.removeItem('user')
   }
 
-  // 初始化
-  initAuth()
-
   return {
     user,
     isLoggedIn,
+    initAuth,
     register,
     login,
     logout

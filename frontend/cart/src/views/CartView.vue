@@ -19,7 +19,7 @@
             class="cart-item"
           >
             <!-- ✅ 修改：商品图片可点击 -->
-            <div class="item-image" @click="goToProductDetail(item.id)">
+            <div class="item-image" @click="goToProductDetail(item.productId || item.product_id || item.id)">
               <img :src="item.image" :alt="item.name" />
               <div class="image-overlay">
                 <span class="view-detail-text">View Details</span>
@@ -27,7 +27,7 @@
             </div>
 
             <!-- ✅ 修改：商品信息区域可点击 -->
-            <div class="item-info" @click="goToProductDetail(item.id)">
+            <div class="item-info" @click="goToProductDetail(item.productId || item.product_id || item.id)">
               <h3 class="item-name">{{ item.name }}</h3>
               <p class="item-price">Unit Price: ¥{{ item.price.toFixed(2) }}</p>
               <p class="view-detail-hint">Click to view details →</p>  <!-- ✅ 新增提示 -->
@@ -108,11 +108,16 @@
 </template>
 
 <script setup>
+import { onMounted } from 'vue'
 import { useCartStore } from '../stores/cart'
 import { useRouter } from 'vue-router'
 
 const cartStore = useCartStore()
 const router = useRouter()
+
+onMounted(() => {
+  cartStore.loadCart()
+})
 
 // ✅ 新增：跳转到商品详情页
 const goToProductDetail = (productId) => {
@@ -138,23 +143,19 @@ const updateItemQuantity = (item) => {
   cartStore.updateQuantity(item.id, item.quantity)
 }
 
-// A10: 移除商品
-const removeItem = (productId) => {
+// A10: 移除商品（传入 cartItemId）
+const removeItem = async (cartItemId) => {
   if (confirm('确定要移除这件商品吗？')) {
-    const result = cartStore.removeFromCart(productId)
-    if (result.success) {
-      alert(result.message)
-    }
+    const result = await cartStore.removeFromCart(cartItemId)
+    if (result?.success) alert(result.message)
   }
 }
 
 // 清空购物车
-const handleClearCart = () => {
+const handleClearCart = async () => {
   if (confirm('确定要清空购物车吗？')) {
-    const result = cartStore.clearCart()
-    if (result.success) {
-      alert(result.message)
-    }
+    const result = await cartStore.clearCart()
+    if (result?.success) alert(result.message)
   }
 }
 </script>

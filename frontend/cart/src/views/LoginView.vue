@@ -44,7 +44,7 @@
         <p><strong>Test Hint:</strong></p>
         <p>Test Account:</p>
         <p>Email: test@example.com</p>
-        <p>Password: 123456</p>
+        <p>Password: test123</p>
         <button @click="useTestAccount" class="btn-test">Use Test Account</button>
       </div>
     </div>
@@ -52,7 +52,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
@@ -65,22 +65,7 @@ const formData = ref({
   password: ''
 })
 
-// 创建测试账户
-onMounted(() => {
-  const users = JSON.parse(localStorage.getItem('users') || '[]')
-  if (!users.find(u => u.email === 'test@example.com')) {
-    users.push({
-      id: 999,
-      fullName: '测试用户',
-      email: 'test@example.com',
-      password: '123456',
-      shippingAddress: '澳门特别行政区测试街道123号',
-      createdAt: new Date().toISOString()
-    })
-    localStorage.setItem('users', JSON.stringify(users))
-  }
-})
-
+// 测试账户需在后端数据库中存在（见后端说明：test@example.com / test123）
 const handleLogin = async () => {
   isLoading.value = true
 
@@ -102,7 +87,7 @@ const handleLogin = async () => {
 
 const useTestAccount = () => {
   formData.value.email = 'test@example.com'
-  formData.value.password = '123456'
+  formData.value.password = 'test123'
 }
 </script>
 

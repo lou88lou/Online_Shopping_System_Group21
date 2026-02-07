@@ -1,63 +1,64 @@
 const db = require('../config/db');
 
 class Product {
-  // 获取所有商品
+  // 获取所有商品（LIMIT/OFFSET 用整数拼接，避免部分 MySQL 对预处理参数报错）
   static async findAll(page = 1, limit = 10) {
-    const offset = (page - 1) * limit;
-    
+    const limitNum = Math.max(1, Math.min(50, parseInt(limit, 10) || 10));
+    const offsetNum = Math.max(0, (parseInt(page, 10) || 1) - 1) * limitNum;
+
     const countSql = 'SELECT COUNT(*) as total FROM products WHERE is_active = TRUE';
     const productsSql = `
       SELECT id, name, price, thumbnail_url, created_at 
       FROM products 
       WHERE is_active = TRUE 
       ORDER BY created_at DESC 
-      LIMIT ? OFFSET ?
+      LIMIT ${limitNum} OFFSET ${offsetNum}
     `;
-    
+
     const [countResult, products] = await Promise.all([
       db.query(countSql),
-      db.query(productsSql, [limit, offset])
+      db.query(productsSql)
     ]);
-    
+    const total = Number(countResult && countResult[0] && countResult[0].total) || 0;
     return {
-      products,
-      total: countResult[0].total,
-      page,
-      limit,
-      totalPages: Math.ceil(countResult[0].total / limit)
+      products: products || [],
+      total,
+      page: parseInt(page, 10) || 1,
+      limit: limitNum,
+      totalPages: limitNum > 0 ? Math.ceil(total / limitNum) : 0
     };
   }
 
-  // 搜索商品
+  // 搜索商品（LIMIT/OFFSET 用整数拼接）
   static async search(keyword, page = 1, limit = 10) {
-    const offset = (page - 1) * limit;
+    const limitNum = Math.max(1, Math.min(50, parseInt(limit, 10) || 10));
+    const offsetNum = Math.max(0, (parseInt(page, 10) || 1) - 1) * limitNum;
     const searchTerm = `%${keyword}%`;
-    
+
     const countSql = `
       SELECT COUNT(*) as total 
       FROM products 
       WHERE is_active = TRUE AND name LIKE ?
     `;
-    
     const productsSql = `
       SELECT id, name, price, thumbnail_url, created_at 
       FROM products 
       WHERE is_active = TRUE AND name LIKE ?
       ORDER BY created_at DESC 
-      LIMIT ? OFFSET ?
+      LIMIT ${limitNum} OFFSET ${offsetNum}
     `;
-    
+
     const [countResult, products] = await Promise.all([
       db.query(countSql, [searchTerm]),
-      db.query(productsSql, [searchTerm, limit, offset])
+      db.query(productsSql, [searchTerm])
     ]);
-    
+    const total = Number(countResult && countResult[0] && countResult[0].total) || 0;
     return {
-      products,
-      total: countResult[0].total,
-      page,
-      limit,
-      totalPages: Math.ceil(countResult[0].total / limit)
+      products: products || [],
+      total,
+      page: parseInt(page, 10) || 1,
+      limit: limitNum,
+      totalPages: limitNum > 0 ? Math.ceil(total / limitNum) : 0
     };
   }
 

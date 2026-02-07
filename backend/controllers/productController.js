@@ -34,7 +34,8 @@ const productController = {
       console.error('Get products error:', error);
       res.status(500).json({
         success: false,
-        error: 'Internal server error'
+        error: 'Internal server error',
+        ...(process.env.NODE_ENV === 'development' && { message: error.message })
       });
     }
   },

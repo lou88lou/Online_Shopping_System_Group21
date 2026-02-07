@@ -82,10 +82,9 @@ const cartStore = useCartStore()
 const product = ref(null)
 const quantity = ref(1)
 
-onMounted(() => {
-  // A6: 根据ID获取产品详情
+onMounted(async () => {
   const productId = route.params.id
-  product.value = productsStore.getProductById(productId)
+  product.value = await productsStore.getProductById(productId)
 })
 
 const increaseQuantity = () => {
@@ -101,11 +100,13 @@ const decreaseQuantity = () => {
 }
 
 // A7: 添加到购物车
-const handleAddToCart = () => {
-  const result = cartStore.addToCart(product.value, quantity.value)
-  if (result.success) {
-    alert(`已添加 ${quantity.value} 件商品到购物车`)
+const handleAddToCart = async () => {
+  const result = await cartStore.addToCart(product.value, quantity.value)
+  if (result?.success) {
+    alert(result.message || `已添加 ${quantity.value} 件商品到购物车`)
     quantity.value = 1
+  } else if (result?.message) {
+    alert(result.message)
   }
 }
 

@@ -3,16 +3,16 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
+import { useAuthStore } from './stores/auth'
 
-// 创建应用
 const app = createApp(App)
-
-// 使用 Pinia（状态管理）
 const pinia = createPinia()
 app.use(pinia)
-
-// 使用路由
 app.use(router)
 
-// 挂载应用
-app.mount('#app')
+// 先恢复登录态再挂载，保证路由守卫能正确判断
+;(async () => {
+  const authStore = useAuthStore()
+  await authStore.initAuth()
+  app.mount('#app')
+})()
