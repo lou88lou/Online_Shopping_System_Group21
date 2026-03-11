@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="vendor-login container">
     <h1>Vendor Login</h1>
     <div class="form">
@@ -15,9 +15,12 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useToast } from '../composables/useToast'
+import { MESSAGES } from '../constants/messages'
 
 const router = useRouter()
 const auth = useAuthStore()
+const toast = useToast()
 const email = ref('')
 const password = ref('')
 const loading = ref(false)
@@ -30,7 +33,7 @@ const handleLogin = async () => {
     // redirect to vendor products
     router.push('/vendor/products')
   } else {
-    alert(res.message || 'Login failed')
+    toast.error(res.message || MESSAGES.auth.loginFailed)
   }
 }
 </script>
@@ -38,6 +41,7 @@ const handleLogin = async () => {
 <style scoped>
 .container { max-width: 600px; margin: 2rem auto; padding: 1rem }
 .form { display:flex; flex-direction:column; gap:0.5rem }
-input { padding:0.5rem; border:1px solid #ddd; border-radius:4px }
+input { padding:0.5rem; border:1px solid var(--color-border); border-radius:4px }
 button { padding:0.75rem; background:#4a5568; color:#fff; border:none; border-radius:6px }
 </style>
+

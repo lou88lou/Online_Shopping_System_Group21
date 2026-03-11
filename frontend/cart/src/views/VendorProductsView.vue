@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="products-page">
     <div class="container">
       <div class="search-section">
@@ -12,7 +12,7 @@
             class="search-input"
           />
           <button @click="handleSearch" class="btn-search">
-            🔍 Search
+            Search
           </button>
         </div>
         <p class="result-count">Found {{ filteredProducts.length }} products</p>
@@ -31,7 +31,7 @@
       </div>
 
       <div v-else class="no-results">
-        <p>😕 No products found</p>
+        <p>No products found</p>
         <button @click="clearSearch" class="btn-clear">Clear Search</button>
       </div>
 
@@ -52,78 +52,48 @@ import Pagination from '../components/Pagination.vue'
 
 const productsStore = useProductsStore()
 const keyword = ref('')
+const pageSize = 6
 
 onMounted(async () => {
   productsStore.currentPage = 1
-  productsStore.itemsPerPage = 6
-  productsStore.searchQuery = ''
-  await productsStore.fetchProducts()
+  await loadVendorProducts()
 })
 
-const filteredProducts = computed(() => {
-  const kw = keyword.value.trim().toLowerCase()
-  const list = productsStore.products || []
-  if (!kw) return list
-  return list.filter(p => {
-    const name = String(p.name || '').toLowerCase()
-    const desc = String(p.description || '').toLowerCase()
-    const id = String(p.id || '').toLowerCase()
-    const category = String(p.category || '').toLowerCase()
-    return name.includes(kw) || desc.includes(kw) || id.includes(kw) || category.includes(kw)
+const filteredProducts = computed(() => productsStore.products || [])
+const vendorTotalPages = computed(() => Math.max(1, Number(productsStore.pagination?.totalPages || 1)))
+const displayedProducts = computed(() => filteredProducts.value)
+
+const loadVendorProducts = async () => {
+  await productsStore.fetchVendorProducts({
+    page: productsStore.currentPage,
+    limit: pageSize,
+    keyword: keyword.value
   })
-})
-
-const hasServerPagination = computed(() => {
-  const totalItems = productsStore.pagination?.totalItems || 0
-  const listLen = (productsStore.products || []).length
-  return totalItems > listLen
-})
-
-const vendorTotalPages = computed(() => {
-  if (hasServerPagination.value) return productsStore.totalPages
-  const total = filteredProducts.value.length
-  const per = productsStore.itemsPerPage || 12
-  return Math.max(1, Math.ceil(total / per))
-})
-
-const displayedProducts = computed(() => {
-  if (hasServerPagination.value) return filteredProducts.value
-  const per = productsStore.itemsPerPage || 12
-  const start = (productsStore.currentPage - 1) * per
-  return filteredProducts.value.slice(start, start + per)
-})
+}
 
 const handleSearch = async () => {
-  productsStore.searchProducts(keyword.value)
   productsStore.currentPage = 1
-  await productsStore.fetchProducts()
+  await loadVendorProducts()
 }
 
 const clearSearch = async () => {
   keyword.value = ''
-  productsStore.searchProducts('')
   productsStore.currentPage = 1
-  await productsStore.fetchProducts()
+  await loadVendorProducts()
 }
 
 const handlePageChange = async (page) => {
-  if (hasServerPagination.value) {
-    productsStore.goToPage(page)
-    await productsStore.fetchProducts()
-    return
-  }
-  const total = vendorTotalPages.value
-  if (page >= 1 && page <= total) {
-    productsStore.currentPage = page
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+  if (page < 1 || page > vendorTotalPages.value) return
+  productsStore.currentPage = page
+  await loadVendorProducts()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 </script>
 
 <style scoped>
 .products-page {
   min-height: calc(100vh - 80px);
-  background: #f5f5f5;
+  background: var(--color-bg);
   padding: 2rem 0;
 }
 
@@ -138,12 +108,12 @@ const handlePageChange = async (page) => {
   padding: 2rem;
   border-radius: 8px;
   margin-bottom: 2rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .search-section h1 {
   margin: 0 0 1.5rem 0;
-  color: #333;
+  color: var(--color-text);
 }
 
 .search-bar {
@@ -155,19 +125,19 @@ const handlePageChange = async (page) => {
 .search-input {
   flex: 1;
   padding: 0.75rem 1rem;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 1rem;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--color-primary);
 }
 
 .btn-search {
   padding: 0.75rem 1.5rem;
-  background: #667eea;
+  background: var(--color-primary);
   color: white;
   border: none;
   border-radius: 6px;
@@ -177,11 +147,11 @@ const handlePageChange = async (page) => {
 }
 
 .btn-search:hover {
-  background: #5568d3;
+  background: var(--color-primary-hover);
 }
 
 .result-count {
-  color: #666;
+  color: var(--color-text-muted);
   font-size: 0.875rem;
 }
 
@@ -201,13 +171,13 @@ const handlePageChange = async (page) => {
 
 .no-results p {
   font-size: 1.25rem;
-  color: #666;
+  color: var(--color-text-muted);
   margin-bottom: 1rem;
 }
 
 .btn-clear {
   padding: 0.75rem 1.5rem;
-  background: #667eea;
+  background: var(--color-primary);
   color: white;
   border: none;
   border-radius: 6px;
@@ -215,7 +185,7 @@ const handlePageChange = async (page) => {
 }
 
 .btn-clear:hover {
-  background: #5568d3;
+  background: var(--color-primary-hover);
 }
 
 @media (max-width: 768px) {
@@ -229,3 +199,4 @@ const handlePageChange = async (page) => {
   }
 }
 </style>
+

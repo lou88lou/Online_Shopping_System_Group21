@@ -82,9 +82,12 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useToast } from '../composables/useToast'
+import { MESSAGES } from '../constants/messages'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const toast = useToast()
 
 const isLoading = ref(false)
 const formData = ref({
@@ -98,7 +101,7 @@ const formData = ref({
 const handleRegister = async () => {
   // 验证密码匹配
   if (formData.value.password !== formData.value.confirmPassword) {
-    alert('Passwords do not match')
+    toast.warning(MESSAGES.auth.passwordMismatch)
     return
   }
 
@@ -108,13 +111,13 @@ const handleRegister = async () => {
     const result = await authStore.register(formData.value)
     
     if (result.success) {
-      alert(result.message)
+      toast.success(result.message)
       router.push('/login')
     } else {
-      alert(result.message)
+      toast.error(result.message || MESSAGES.auth.registerFailed)
     }
   } catch (error) {
-    alert('Registration failed, please try again')
+    toast.error(MESSAGES.auth.registerFailed)
   } finally {
     isLoading.value = false
   }
@@ -127,29 +130,30 @@ const handleRegister = async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 2rem;
+  background: linear-gradient(145deg, #d9e1ea 0%, #e9edf2 50%, #f5f5f7 100%);
+  padding: var(--space-7);
 }
 
 .register-container {
-  background: white;
-  border-radius: 12px;
-  padding: 2.5rem;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
   width: 100%;
   max-width: 500px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
 }
 
 h1 {
   text-align: center;
-  color: #333;
-  margin-bottom: 0.5rem;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
 }
 
 .subtitle {
   text-align: center;
-  color: #666;
-  margin-bottom: 2rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-7);
 }
 
 .register-form {
@@ -165,23 +169,24 @@ h1 {
 
 .form-group label {
   font-weight: 600;
-  color: #333;
-  margin-bottom: 0.5rem;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
 }
 
 .form-group input,
 .form-group textarea {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 1rem;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
+  background: var(--color-surface-soft);
   transition: border-color 0.3s;
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--color-primary);
 }
 
 .form-group textarea {
@@ -190,20 +195,20 @@ h1 {
 }
 
 .btn-register {
-  padding: 1rem;
-  background: #667eea;
+  padding: var(--space-4);
+  background: var(--color-primary);
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 600;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.3s;
-  margin-top: 0.5rem;
+  transition: background 0.2s ease;
+  margin-top: var(--space-2);
 }
 
 .btn-register:hover:not(:disabled) {
-  background: #5568d3;
+  background: var(--color-primary-hover);
 }
 
 .btn-register:disabled {
@@ -213,15 +218,15 @@ h1 {
 
 .login-link {
   text-align: center;
-  margin-top: 1.5rem;
-  color: #666;
+  margin-top: var(--space-6);
+  color: var(--color-text-muted);
 }
 
 .login-link a {
-  color: #667eea;
+  color: var(--color-primary);
   text-decoration: none;
   font-weight: 600;
-  margin-left: 0.5rem;
+  margin-left: var(--space-2);
 }
 
 .login-link a:hover {

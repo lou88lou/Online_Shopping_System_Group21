@@ -70,9 +70,12 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useToast } from '../composables/useToast'
+import { MESSAGES } from '../constants/messages'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const toast = useToast()
 
 const isLoading = ref(false)
 const role = ref('customer')
@@ -90,7 +93,7 @@ const handleLogin = async () => {
       const allowedEmail = 'vendor@example.com'
       const allowedPassword = 'vendor123'
       if (formData.value.email !== allowedEmail || formData.value.password !== allowedPassword) {
-        alert('Vendor login requires the designated vendor credentials')
+        toast.error(MESSAGES.auth.vendorCredentialsRequired)
         isLoading.value = false
         return
       }
@@ -99,7 +102,7 @@ const handleLogin = async () => {
     const result = await authStore.login(formData.value.email, formData.value.password)
 
     if (result.success) {
-      alert(result.message)
+      toast.success(result.message)
       // persist role for navbar/permissions
       try { localStorage.setItem('role', role.value) } catch (e) {
         // ignore storage errors in restricted environments
@@ -112,10 +115,10 @@ const handleLogin = async () => {
         router.push('/products')
       }
     } else {
-      alert(result.message)
+      toast.error(result.message)
     }
   } catch (error) {
-    alert('Login failed, please try again')
+    toast.error(MESSAGES.auth.loginFailed)
   } finally {
     isLoading.value = false
   }
@@ -146,29 +149,30 @@ const useAdminAccount = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 2rem;
+  background: linear-gradient(145deg, #d9e1ea 0%, #e9edf2 50%, #f5f5f7 100%);
+  padding: var(--space-7);
 }
 
 .login-container {
-  background: white;
-  border-radius: 12px;
-  padding: 2.5rem;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
   width: 100%;
   max-width: 450px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
 }
 
 h1 {
   text-align: center;
-  color: #333;
-  margin-bottom: 0.5rem;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
 }
 
 .subtitle {
   text-align: center;
-  color: #666;
-  margin-bottom: 2rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-7);
 }
 
 .login-form {
@@ -184,38 +188,39 @@ h1 {
 
 .form-group label {
   font-weight: 600;
-  color: #333;
-  margin-bottom: 0.5rem;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
 }
 
 .form-group input {
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 1rem;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
+  background: var(--color-surface-soft);
   transition: border-color 0.3s;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--color-primary);
 }
 
 .btn-login {
-  padding: 1rem;
-  background: #667eea;
+  padding: var(--space-4);
+  background: var(--color-primary);
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 600;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-md);
+  font-weight: 700;
   cursor: pointer;
-  transition: background 0.3s;
-  margin-top: 0.5rem;
+  transition: background 0.2s ease;
+  margin-top: var(--space-2);
 }
 
 .btn-login:hover:not(:disabled) {
-  background: #5568d3;
+  background: var(--color-primary-hover);
 }
 
 .btn-login:disabled {
@@ -225,15 +230,15 @@ h1 {
 
 .register-link {
   text-align: center;
-  margin-top: 1.5rem;
-  color: #666;
+  margin-top: var(--space-6);
+  color: var(--color-text-muted);
 }
 
 .register-link a {
-  color: #667eea;
+  color: var(--color-primary);
   text-decoration: none;
   font-weight: 600;
-  margin-left: 0.5rem;
+  margin-left: var(--space-2);
 }
 
 .register-link a:hover {
@@ -241,12 +246,13 @@ h1 {
 }
 
 .test-account {
-  margin-top: 2rem;
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  color: #666;
+  margin-top: var(--space-7);
+  padding: var(--space-4);
+  background: var(--color-surface-soft);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border);
 }
 
 .test-account p {
@@ -254,26 +260,27 @@ h1 {
 }
 
 .btn-test {
-  margin-top: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: #28a745;
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-primary);
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
+  font-weight: 600;
 }
 
 .btn-test:hover {
-  background: #218838;
+  background: var(--color-primary-hover);
 }
 
 /* Unified quick buttons */
 .quick-buttons { margin-top: 0.5rem; display:flex; gap:0.5rem }
 .quick-buttons .btn { padding: 0.5rem 0.9rem; border-radius:6px; border:none; cursor:pointer; font-weight:600 }
-.btn-vendor { background:#4a5568; color:#fff }
-.btn-vendor:hover { background:#39424a }
-.btn-admin { background:#2b6cb0; color:#fff }
-.btn-admin:hover { background:#1e4f8a }
+.btn-vendor { background:#5f7083; color:#fff }
+.btn-vendor:hover { background:#526274 }
+.btn-admin { background:#6a88a8; color:#fff }
+.btn-admin:hover { background:#5d7997 }
 .btn { font-size:0.9rem }
 </style>

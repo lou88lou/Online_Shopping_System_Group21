@@ -1,4 +1,4 @@
-<!-- frontend/src/components/Pagination.vue -->
+﻿<!-- frontend/src/components/Pagination.vue -->
 <template>
   <div class="pagination" v-if="totalPages > 1">
     <button 
@@ -6,7 +6,7 @@
       :disabled="currentPage === 1"
       class="page-btn"
     >
-      ← Previous
+      &larr; Previous
     </button>
 
     <div class="page-numbers">
@@ -25,7 +25,7 @@
       :disabled="currentPage === totalPages"
       class="page-btn"
     >
-      Next →
+      Next &rarr;
     </button>
   </div>
 </template>
@@ -71,7 +71,7 @@ const displayPages = computed(() => {
 .page-btn {
   padding: 0.5rem 1rem;
   background: white;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   cursor: pointer;
   font-weight: 500;
@@ -79,9 +79,9 @@ const displayPages = computed(() => {
 }
 
 .page-btn:hover:not(:disabled) {
-  background: #667eea;
+  background: var(--color-primary);
   color: white;
-  border-color: #667eea;
+  border-color: var(--color-primary);
 }
 
 .page-btn:disabled {
@@ -97,20 +97,21 @@ const displayPages = computed(() => {
 .page-number {
   padding: 0.5rem 0.75rem;
   background: white;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.3s;
 }
 
 .page-number:hover {
-  background: #f5f5f5;
+  background: var(--color-bg);
 }
 
 .page-number.active {
-  background: #667eea;
+  background: var(--color-primary);
   color: white;
-  border-color: #667eea;
+  border-color: var(--color-primary);
   font-weight: bold;
 }
 </style>
+

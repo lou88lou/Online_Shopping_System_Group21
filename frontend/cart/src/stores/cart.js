@@ -22,6 +22,42 @@ export const useCartStore = defineStore('cart', () => {
   const cartItems = ref([])
   const isLoading = ref(false)
 
+  const getErrorStatus = (err) => err?.response?.status ?? err?.status
+  const getErrorMessage = (err) =>
+    (err?.response?.data?.error || err?.response?.data?.message || err?.message || '')
+      .toString()
+      .toLowerCase()
+
+  const addToLocalCart = (product, quantity = 1) => {
+    try {
+      const localUser = JSON.parse(localStorage.getItem('user'))
+      if (!localUser || !localUser.id) {
+        return { success: false, message: 'Please login first to add items to cart', requiresLogin: true }
+      }
+      const key = `cart_${localUser.id}`
+      const raw = localStorage.getItem(key)
+      const list = raw ? JSON.parse(raw) : []
+      const existing = list.find(i => String(i.productId) === String(product.id))
+      if (existing) {
+        existing.quantity += quantity
+      } else {
+        list.push({
+          id: `local-${Date.now()}`,
+          productId: product.id,
+          name: product.name,
+          price: Number(product.price || 0),
+          image: product.thumbnail_url || product.image || product.thumbnail,
+          quantity
+        })
+      }
+      localStorage.setItem(key, JSON.stringify(list))
+      cartItems.value = list
+      return { success: true, message: 'Added to cart.' }
+    } catch (e) {
+      return { success: false, message: 'Failed to add to cart' }
+    }
+  }
+
   const totalItems = computed(() => {
     return cartItems.value.reduce((sum, item) => sum + item.quantity, 0)
   })
@@ -74,7 +110,8 @@ export const useCartStore = defineStore('cart', () => {
     } catch (err) {
       console.error('Load cart error:', err)
       // If auth error or backend down, try to load demo/local cart
-      if (err && (err.status === 401 || err.status === 403)) {
+      const status = getErrorStatus(err)
+      if (err && (status === 401 || status === 403)) {
         try {
           const localUser = JSON.parse(localStorage.getItem('user'))
           if (localUser && localUser.id) {
@@ -95,27 +132,22 @@ export const useCartStore = defineStore('cart', () => {
 
   const addToCart = async (product, quantity = 1) => {
     const token = getToken()
-    // If no token or backend fails, use localStorage fallback
-    if (!token) {
-      try {
-        const localUser = JSON.parse(localStorage.getItem('user'))
-        if (!localUser || !localUser.id) return { success: false, message: 'Please login first to add items to cart', requiresLogin: true }
-        const key = `cart_${localUser.id}`
-        const raw = localStorage.getItem(key)
-        const list = raw ? JSON.parse(raw) : []
-        const existing = list.find(i => String(i.productId) === String(product.id))
-        if (existing) {
-          existing.quantity += quantity
-        } else {
-          list.push({ id: `local-${Date.now()}`, productId: product.id, name: product.name, price: Number(product.price || 0), image: product.thumbnail_url || product.image || product.thumbnail, quantity })
-        }
-        localStorage.setItem(key, JSON.stringify(list))
-        cartItems.value = list
-        return { success: true, message: 'Added to cart (demo)' }
-      } catch (e) {
-        return { success: false, message: 'Failed to add to cart' }
-      }
+    let localUser = null
+    let isLocalUser = false
+    try {
+      localUser = JSON.parse(localStorage.getItem('user'))
+      isLocalUser = !!localUser?.id?.toString().startsWith('local')
+    } catch (e) {
+      // ignore
     }
+    const isLocalToken = token === 'local-token'
+    const isNumericProductId = /^\d+$/.test(String(product?.id ?? ''))
+
+    // Demo/local user or non-numeric product ID should stay in local cart mode.
+    if (!token || isLocalToken || isLocalUser || !isNumericProductId) {
+      return addToLocalCart(product, quantity)
+    }
+
     isLoading.value = true
     // prevent global auth interceptor from immediately redirecting on 401
     if (typeof window !== 'undefined') window.__authRedirect = true
@@ -128,47 +160,14 @@ export const useCartStore = defineStore('cart', () => {
       // If backend returned an auth-related error message (e.g. 'Invalid token'), perform local fallback
       const lowerMsg = (data?.error || data?.message || '').toString().toLowerCase()
       if (lowerMsg.includes('token') || lowerMsg.includes('invalid')) {
-        try {
-          const localUser = JSON.parse(localStorage.getItem('user'))
-          if (!localUser || !localUser.id) return { success: false, message: 'Please login first to add items to cart', requiresLogin: true }
-          const key = `cart_${localUser.id}`
-          const raw = localStorage.getItem(key)
-          const list = raw ? JSON.parse(raw) : []
-          const existing = list.find(i => String(i.productId) === String(product.id))
-          if (existing) {
-            existing.quantity += quantity
-          } else {
-            list.push({ id: `local-${Date.now()}`, productId: product.id, name: product.name, price: Number(product.price || 0), image: product.thumbnail_url || product.image || product.thumbnail, quantity })
-          }
-          localStorage.setItem(key, JSON.stringify(list))
-          cartItems.value = list
-          return { success: true, message: 'Added to cart (demo)' }
-        } catch (e) {
-          return { success: false, message: data?.error || 'Failed to add to cart' }
-        }
+        return addToLocalCart(product, quantity)
       }
       return { success: false, message: data?.error || 'Failed to add to cart' }
     } catch (err) {
-      // If token invalid (401) or auth error (403), fall back to local demo cart if possible
-      if (err && (err.status === 401 || err.status === 403)) {
-        try {
-          const localUser = JSON.parse(localStorage.getItem('user'))
-          if (!localUser || !localUser.id) return { success: false, message: 'Please login first to add items to cart', requiresLogin: true }
-          const key = `cart_${localUser.id}`
-          const raw = localStorage.getItem(key)
-          const list = raw ? JSON.parse(raw) : []
-          const existing = list.find(i => String(i.productId) === String(product.id))
-          if (existing) {
-            existing.quantity += quantity
-          } else {
-            list.push({ id: `local-${Date.now()}`, productId: product.id, name: product.name, price: Number(product.price || 0), image: product.thumbnail_url || product.image || product.thumbnail, quantity })
-          }
-          localStorage.setItem(key, JSON.stringify(list))
-          cartItems.value = list
-          return { success: true, message: 'Added to cart (demo)' }
-        } catch (e) {
-          return { success: false, message: 'Failed to add to cart' }
-        }
+      // For auth/backend errors (including 500), gracefully fallback to local cart.
+      const status = getErrorStatus(err)
+      if (err && (status === 401 || status === 403 || status === 500 || status === 404)) {
+        return addToLocalCart(product, quantity)
       }
       return { success: false, message: err.message || 'Failed to add to cart' }
     } finally {
@@ -179,9 +178,19 @@ export const useCartStore = defineStore('cart', () => {
 
   const updateQuantity = async (cartItemId, quantity) => {
     const token = getToken()
-    if (!token) {
+    let localUser = null
+    let isLocalUser = false
+    try {
+      localUser = JSON.parse(localStorage.getItem('user'))
+      isLocalUser = !!localUser?.id?.toString().startsWith('local')
+    } catch (e) {
+      // ignore
+    }
+    const isLocalToken = token === 'local-token'
+    const isNumericCartItemId = /^\d+$/.test(String(cartItemId ?? ''))
+
+    if (!token || isLocalToken || isLocalUser || !isNumericCartItemId) {
       try {
-        const localUser = JSON.parse(localStorage.getItem('user'))
         if (!localUser || !localUser.id) return
         const key = `cart_${localUser.id}`
         const list = JSON.parse(localStorage.getItem(key) || '[]')
@@ -211,9 +220,10 @@ export const useCartStore = defineStore('cart', () => {
       }
     } catch (err) {
       // If auth error or backend unavailable, try local fallback
-      if (err && (err.status === 401 || err.status === 403 || (err.message || '').toLowerCase().includes('token'))) {
+      const status = getErrorStatus(err)
+      const lowerMsg = getErrorMessage(err)
+      if (err && (status === 401 || status === 403 || status === 404 || status === 500 || lowerMsg.includes('token') || lowerMsg.includes('invalid') || lowerMsg.includes('network'))) {
         try {
-          const localUser = JSON.parse(localStorage.getItem('user'))
           if (!localUser || !localUser.id) return
           const key = `cart_${localUser.id}`
           const list = JSON.parse(localStorage.getItem(key) || '[]')
@@ -239,9 +249,19 @@ export const useCartStore = defineStore('cart', () => {
 
   const removeFromCart = async (cartItemId) => {
     const token = getToken()
-    if (!token) {
+    let localUser = null
+    let isLocalUser = false
+    try {
+      localUser = JSON.parse(localStorage.getItem('user'))
+      isLocalUser = !!localUser?.id?.toString().startsWith('local')
+    } catch (e) {
+      // ignore
+    }
+    const isLocalToken = token === 'local-token'
+    const isNumericCartItemId = /^\d+$/.test(String(cartItemId ?? ''))
+
+    if (!token || isLocalToken || isLocalUser || !isNumericCartItemId) {
       try {
-        const localUser = JSON.parse(localStorage.getItem('user'))
         if (!localUser || !localUser.id) return { success: false, message: 'Not logged in' }
         const key = `cart_${localUser.id}`
         const list = JSON.parse(localStorage.getItem(key) || '[]')
@@ -249,7 +269,7 @@ export const useCartStore = defineStore('cart', () => {
         if (idx !== -1) list.splice(idx, 1)
         localStorage.setItem(key, JSON.stringify(list))
         cartItems.value = list
-        return { success: true, message: 'Item removed (demo)' }
+        return { success: true, message: 'Item removed from cart.' }
       } catch (e) {
         return { success: false, message: 'Failed to remove' }
       }
@@ -264,9 +284,10 @@ export const useCartStore = defineStore('cart', () => {
       return { success: false, message: data?.error || 'Failed to remove' }
     } catch (err) {
       // If auth error or backend unavailable, try local fallback
-      if (err && (err.status === 401 || err.status === 403 || (err.message || '').toLowerCase().includes('token'))) {
+      const status = getErrorStatus(err)
+      const lowerMsg = getErrorMessage(err)
+      if (err && (status === 401 || status === 403 || status === 404 || status === 500 || lowerMsg.includes('token') || lowerMsg.includes('invalid') || lowerMsg.includes('network'))) {
         try {
-          const localUser = JSON.parse(localStorage.getItem('user'))
           if (!localUser || !localUser.id) return { success: false, message: 'Not logged in' }
           const key = `cart_${localUser.id}`
           const list = JSON.parse(localStorage.getItem(key) || '[]')
@@ -274,7 +295,7 @@ export const useCartStore = defineStore('cart', () => {
           if (idx !== -1) list.splice(idx, 1)
           localStorage.setItem(key, JSON.stringify(list))
           cartItems.value = list
-          return { success: true, message: 'Item removed (demo)' }
+          return { success: true, message: 'Item removed from cart.' }
         } catch (e) {
           console.error('Local removeFromCart fallback failed:', e)
           return { success: false, message: 'Failed to remove' }
@@ -309,7 +330,7 @@ export const useCartStore = defineStore('cart', () => {
           localStorage.removeItem(`cart_${localUser.id}`)
         }
         cartItems.value = []
-        return { success: true, message: 'Cart cleared (demo)' }
+        return { success: true, message: 'Cart cleared.' }
       }
     } catch (e) {
       // ignore and fallthrough to backend
@@ -321,14 +342,16 @@ export const useCartStore = defineStore('cart', () => {
       return { success: true, message: 'Cart cleared successfully' }
     } catch (err) {
       // 后端不可用时（如仅前端 demo），回退到清空本地购物车
-      if (err && (err.status === 401 || err.status === 403 || (err.message || '').toLowerCase().includes('token') || (err.message || '').toLowerCase().includes('network'))) {
+      const status = getErrorStatus(err)
+      const lowerMsg = getErrorMessage(err)
+      if (err && (status === 401 || status === 403 || status === 404 || status === 500 || lowerMsg.includes('token') || lowerMsg.includes('invalid') || lowerMsg.includes('network'))) {
         try {
           const localUser = JSON.parse(localStorage.getItem('user'))
           if (localUser?.id) {
             localStorage.removeItem(`cart_${localUser.id}`)
           }
           cartItems.value = []
-          return { success: true, message: 'Cart cleared (demo)' }
+          return { success: true, message: 'Cart cleared.' }
         } catch (e) {
           console.error('Local clearCart fallback failed:', e)
         }

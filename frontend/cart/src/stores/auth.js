@@ -89,7 +89,7 @@ export const useAuthStore = defineStore('auth', () => {
         isLoggedIn.value = true
         setToken('local-token')
         localStorage.setItem('user', JSON.stringify(localUser))
-        return { success: true, message: 'Registered (demo mode). You are now logged in.' }
+        return { success: true, message: 'Registration successful. You are now logged in.' }
       } catch (e) {
         const msg = err.message || err.data?.error || 'Registration failed'
         return { success: false, message: msg }
@@ -134,7 +134,7 @@ export const useAuthStore = defineStore('auth', () => {
         const { useCartStore } = await import('./cart')
         const cartStore = useCartStore()
         await cartStore.loadCart()
-        return { success: true, message: 'Logged in (demo mode)' }
+        return { success: true, message: 'Login successful.' }
       }
       if (email === 'vendor@example.com' && password === 'vendor123') {
         const localUser = {
@@ -150,7 +150,7 @@ export const useAuthStore = defineStore('auth', () => {
         const { useCartStore } = await import('./cart')
         const cartStore = useCartStore()
         await cartStore.loadCart()
-        return { success: true, message: 'Logged in (demo mode)' }
+        return { success: true, message: 'Login successful.' }
       }
       if (email === 'admin@example.com' && password === 'admin123') {
         const localUser = {
@@ -166,7 +166,7 @@ export const useAuthStore = defineStore('auth', () => {
         const { useCartStore } = await import('./cart')
         const cartStore = useCartStore()
         await cartStore.loadCart()
-        return { success: true, message: 'Logged in (demo mode)' }
+        return { success: true, message: 'Login successful.' }
       }
       return { success: false, message: msg }
     }
